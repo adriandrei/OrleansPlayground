@@ -106,7 +106,7 @@ public sealed class ReminderWorkerGrain(
             siloDetails.Name,
             DateTime.UtcNow);
 
-        DeactivateOnIdle();
+        MigrateOnIdle();
         return Task.FromResult(true);
     }
 

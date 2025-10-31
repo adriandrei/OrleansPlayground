@@ -28,14 +28,14 @@ builder.Host.UseOrleans(silo =>
 
     silo.Configure<ReminderOptions>(o =>
     {
-        o.RefreshReminderListPeriod = TimeSpan.FromSeconds(30);
+        o.RefreshReminderListPeriod = TimeSpan.FromMinutes(2);
         o.MinimumReminderPeriod = TimeSpan.FromSeconds(10);
     });
 
     silo.Configure<GrainCollectionOptions>(o =>
     {
-        o.CollectionAge = TimeSpan.FromSeconds(5);
-        o.CollectionQuantum = TimeSpan.FromSeconds(4);
+        o.CollectionAge = TimeSpan.FromMinutes(2);
+        o.CollectionQuantum = TimeSpan.FromMinutes(1);
     });
 
     silo.UseCosmosClustering(opt =>
