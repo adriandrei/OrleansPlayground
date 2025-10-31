@@ -165,6 +165,9 @@ public sealed class ReminderWorkerGrain(
         state.State.PerSiloDelayTotals[silo] =
             state.State.PerSiloDelayTotals.TryGetValue(silo, out var d) ? d + delayMs : delayMs;
 
+        if (state.State.TotalTicks % 10 == 0)
+            await state.WriteStateAsync();
+
         logger.LogInformation(
             "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",
             this.GetPrimaryKeyString(),
