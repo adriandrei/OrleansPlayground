@@ -112,6 +112,7 @@ public sealed class ReminderWorkerGrain(
 
     public async Task ReceiveReminder(string name, TickStatus status)
     {
+        await Task.Delay(Random.Shared.Next(50, 1200)); // Simulate work)
         logger.LogInformation(
             "[ReminderTick] {GrainType} ticked. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
             _grainType,
