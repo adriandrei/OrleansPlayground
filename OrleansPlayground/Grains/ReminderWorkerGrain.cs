@@ -63,7 +63,7 @@ public sealed class ReminderWorkerGrain(
             //if (Random.Shared.NextDouble() < 0.05) // ~5% chance per tick
             //    MigrateOnIdle();
 
-            //MigrateOnIdle();
+            MigrateOnIdle();
 
         }
         catch (Exception ex)

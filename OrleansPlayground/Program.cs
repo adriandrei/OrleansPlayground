@@ -34,8 +34,8 @@ builder.Host.UseOrleans(silo =>
 
     silo.Configure<GrainCollectionOptions>(o =>
     {
-        o.CollectionAge = TimeSpan.FromSeconds(30);
-        o.CollectionQuantum = TimeSpan.FromSeconds(10);
+        o.CollectionAge = TimeSpan.FromSeconds(5);
+        o.CollectionQuantum = TimeSpan.FromSeconds(4);
     });
 
     silo.UseCosmosClustering(opt =>
@@ -64,9 +64,7 @@ builder.Host.UseOrleans(silo =>
 
     silo.UseDashboard(opt =>
     {
-        opt.HostSelf = true;
-        opt.Port = 8080;
-        opt.BasePath = "/";
+        opt.HostSelf = false;
     });
 });
 
@@ -78,11 +76,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
 app.UseHttpsRedirection();
 app.UseAuthorization();
+app.UseSwagger();
+app.UseSwaggerUI();
 app.MapControllers();
 app.UseOrleansDashboard(new OrleansDashboard.DashboardOptions
 {
