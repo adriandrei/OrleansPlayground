@@ -25,6 +25,13 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
         return Ok(ids);
     }
 
+    [HttpGet("count")]
+    public async Task<IActionResult> Count()
+    {
+        var ids = await grains.GetGrain<IWorkerCatalogGrain>("catalog").ListAsync();
+        return Ok(ids.Count);
+    }
+
     [HttpPost("purge")]
     public async Task<IActionResult> Purge([FromQuery] int count = 0)
     {
