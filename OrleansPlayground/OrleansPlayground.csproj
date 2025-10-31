@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Azure.Cosmos" Version="*" />
+		<PackageReference Include="Microsoft.Orleans.Server" Version="*" />
+		<PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="*" />
+		<PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="*" />
+		<PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="*" />
+		<PackageReference Include="OrleansDashboard" Version="*" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="*" />
+	</ItemGroup>
+
+</Project>
