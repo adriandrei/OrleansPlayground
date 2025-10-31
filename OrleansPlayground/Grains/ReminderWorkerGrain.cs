@@ -82,14 +82,14 @@ public sealed class ReminderWorkerGrain(
         await grains.GetGrain<IWorkerCatalogGrain>("catalog")
                     .AddAsync(this.GetPrimaryKeyString());
 
-        logger.LogInformation(
-            "[Registration] {GrainType} registered reminder. GrainId={GrainId}, Due={Due}, Period={Period}, Silo={Silo}, Time={Time:O}",
-            _grainType,
-            this.GetPrimaryKeyString(),
-            due,
-            period,
-            siloDetails.Name,
-            DateTime.UtcNow);
+        //logger.LogInformation(
+        //    "[Registration] {GrainType} registered reminder. GrainId={GrainId}, Due={Due}, Period={Period}, Silo={Silo}, Time={Time:O}",
+        //    _grainType,
+        //    this.GetPrimaryKeyString(),
+        //    due,
+        //    period,
+        //    siloDetails.Name,
+        //    DateTime.UtcNow);
     }
 
     public async Task<bool> UnregisterAsync()
@@ -104,44 +104,44 @@ public sealed class ReminderWorkerGrain(
             if (state.RecordExists)
             {
                 await state.ClearStateAsync();
-                logger.LogInformation(
-                    "[Unregister] {GrainType} cleared persisted state. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
-                    _grainType,
-                    this.GetPrimaryKeyString(),
-                    siloDetails.Name,
-                    DateTime.UtcNow);
+                //logger.LogInformation(
+                //    "[Unregister] {GrainType} cleared persisted state. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+                //    _grainType,
+                //    this.GetPrimaryKeyString(),
+                //    siloDetails.Name,
+                //    DateTime.UtcNow);
             }
 
 
-            logger.LogInformation(
-                "[Unregister] {GrainType} unregistered reminder. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
-                _grainType,
-                this.GetPrimaryKeyString(),
-                siloDetails.Name,
-                DateTime.UtcNow);
+            //logger.LogInformation(
+            //    "[Unregister] {GrainType} unregistered reminder. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+            //    _grainType,
+            //    this.GetPrimaryKeyString(),
+            //    siloDetails.Name,
+            //    DateTime.UtcNow);
 
             DeactivateOnIdle();
             return true;
         }
 
-        logger.LogWarning(
-            "[Unregister] {GrainType} no reminder found to unregister. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
-            _grainType,
-            this.GetPrimaryKeyString(),
-            siloDetails.Name,
-            DateTime.UtcNow);
+        //logger.LogWarning(
+        //    "[Unregister] {GrainType} no reminder found to unregister. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+        //    _grainType,
+        //    this.GetPrimaryKeyString(),
+        //    siloDetails.Name,
+        //    DateTime.UtcNow);
 
         return false;
     }
 
     public Task<bool> ReRegisterAsync()
     {
-        logger.LogInformation(
-            "[ReRegister] {GrainType} re-register requested. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
-            _grainType,
-            this.GetPrimaryKeyString(),
-            siloDetails.Name,
-            DateTime.UtcNow);
+        //logger.LogInformation(
+        //    "[ReRegister] {GrainType} re-register requested. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+        //    _grainType,
+        //    this.GetPrimaryKeyString(),
+        //    siloDetails.Name,
+        //    DateTime.UtcNow);
 
         MigrateOnIdle();
         return Task.FromResult(true);
@@ -173,13 +173,13 @@ public sealed class ReminderWorkerGrain(
                 Random.Shared.Next(800, 3200) :
                 Random.Shared.Next(50, 800));
 
-        logger.LogInformation(
-            "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",
-            this.GetPrimaryKeyString(),
-            state.State.TotalTicks,
-            delayMs,
-            silo,
-            now);
+        //logger.LogInformation(
+        //    "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",
+        //    this.GetPrimaryKeyString(),
+        //    state.State.TotalTicks,
+        //    delayMs,
+        //    silo,
+        //    now);
     }
 
     public Task<ReminderWorkerStats> GetStatsAsync()
