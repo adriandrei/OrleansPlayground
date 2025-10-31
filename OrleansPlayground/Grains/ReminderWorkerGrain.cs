@@ -60,8 +60,8 @@ public sealed class ReminderWorkerGrain(
             logger.LogInformation("Grain {Id} ticked at {UtcNow:O}", this.GetPrimaryKeyString(), DateTime.UtcNow);
 
             // In ReceiveReminder:
-            if (Random.Shared.NextDouble() < 0.05) // ~5% chance per tick
-                MigrateOnIdle();
+            //if (Random.Shared.NextDouble() < 0.05) // ~5% chance per tick
+            //    MigrateOnIdle();
 
         }
         catch (Exception ex)
