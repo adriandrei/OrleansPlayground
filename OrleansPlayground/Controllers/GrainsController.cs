@@ -14,7 +14,7 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
         {
             var id = Guid.NewGuid().ToString("N");
             await grains.GetGrain<IReminderWorkerGrain>(id)
-                        .EnsureRegisteredAsync();
+                        .EnsureRegisteredAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
         }
         return Ok(new { Registered = count });
     }

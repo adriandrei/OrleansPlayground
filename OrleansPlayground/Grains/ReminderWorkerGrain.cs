@@ -4,7 +4,7 @@ namespace OrleansPlayground.Grains;
 
 public interface IReminderWorkerGrain : IGrainWithStringKey
 {
-    Task EnsureRegisteredAsync(TimeSpan? due = null, TimeSpan? period = null);
+    Task EnsureRegisteredAsync(TimeSpan due, TimeSpan perio);
     Task<bool> UnregisterAsync();
     Task<bool> ReRegisterAsync();  // new
 }
@@ -12,23 +12,59 @@ public interface IReminderWorkerGrain : IGrainWithStringKey
 public sealed class ReminderWorkerGrain(
     ILogger<ReminderWorkerGrain> logger,
     IReminderRegistry registry,
-    IGrainFactory grains)
+    IGrainFactory grains,
+    ILocalSiloDetails siloDetails)
     : Grain, IReminderWorkerGrain, IRemindable
 {
     private const string ReminderName = "periodic";
-    private static readonly TimeSpan DefaultDue = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
+    private string? _lastSiloName;
+    private readonly string _grainType = nameof(ReminderWorkerGrain);
 
-    public async Task EnsureRegisteredAsync(TimeSpan? due = null, TimeSpan? period = null)
+    public override async Task OnActivateAsync(CancellationToken token)
+    {
+        logger.LogInformation(
+            "[Activation] {GrainType} activated. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            siloDetails.Name,
+            DateTime.UtcNow);
+
+        _lastSiloName = siloDetails.Name;
+        await base.OnActivateAsync(token);
+    }
+
+    public override Task OnDeactivateAsync(DeactivationReason reason, CancellationToken token)
+    {
+        logger.LogInformation(
+            "[Deactivation] {GrainType} deactivated. GrainId={GrainId}, Silo={Silo}, Reason={Reason}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            _lastSiloName ?? siloDetails.Name,
+            reason.Description,
+            DateTime.UtcNow);
+
+        return base.OnDeactivateAsync(reason, token);
+    }
+
+    public async Task EnsureRegisteredAsync(TimeSpan due, TimeSpan period)
     {
         await registry.RegisterOrUpdateReminder(
             this.GetGrainId(),
             ReminderName,
-            due ?? DefaultDue,
-            period ?? DefaultPeriod);
+            due,
+            period);
 
         await grains.GetGrain<IWorkerCatalogGrain>("catalog")
                     .AddAsync(this.GetPrimaryKeyString());
+
+        logger.LogInformation(
+            "[Registration] {GrainType} registered reminder. GrainId={GrainId}, Due={Due}, Period={Period}, Silo={Silo}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            due,
+            period,
+            siloDetails.Name,
+            DateTime.UtcNow);
     }
 
     public async Task<bool> UnregisterAsync()
@@ -40,35 +76,51 @@ public sealed class ReminderWorkerGrain(
             await grains.GetGrain<IWorkerCatalogGrain>("catalog")
                         .RemoveAsync(this.GetPrimaryKeyString());
 
+            logger.LogInformation(
+                "[Unregister] {GrainType} unregistered reminder. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+                _grainType,
+                this.GetPrimaryKeyString(),
+                siloDetails.Name,
+                DateTime.UtcNow);
+
             DeactivateOnIdle();
             return true;
         }
+
+        logger.LogWarning(
+            "[Unregister] {GrainType} no reminder found to unregister. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            siloDetails.Name,
+            DateTime.UtcNow);
+
         return false;
     }
 
-    public async Task<bool> ReRegisterAsync()
+    public Task<bool> ReRegisterAsync()
     {
+        logger.LogInformation(
+            "[ReRegister] {GrainType} re-register requested. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            siloDetails.Name,
+            DateTime.UtcNow);
+
         DeactivateOnIdle();
-        return true;
+        return Task.FromResult(true);
     }
 
     public async Task ReceiveReminder(string name, TickStatus status)
     {
-        try
-        {
-            //await Task.Delay(Random.Shared.Next(20, 80));
-            logger.LogInformation("Grain {Id} ticked at {UtcNow:O}", this.GetPrimaryKeyString(), DateTime.UtcNow);
+        logger.LogInformation(
+            "[ReminderTick] {GrainType} ticked. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            siloDetails.Name,
+            DateTime.UtcNow);
 
-            // In ReceiveReminder:
-            //if (Random.Shared.NextDouble() < 0.05) // ~5% chance per tick
-            //    MigrateOnIdle();
-
-            MigrateOnIdle();
-
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error processing reminder tick");
-        }
+        // Here’s where you can see migrations
+        MigrateOnIdle();
     }
 }
+
