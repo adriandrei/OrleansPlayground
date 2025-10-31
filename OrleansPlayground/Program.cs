@@ -60,6 +60,7 @@ builder.Host.UseOrleans(silo =>
         opt.DatabaseName = "devops";
         opt.ContainerName = "orleans-catalog";
         opt.IsResourceCreationEnabled = true;
+        opt.DeleteStateOnClear = true;
     });
 
     silo.UseDashboard(opt =>
