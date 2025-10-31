@@ -48,13 +48,22 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
         var toRebalance = ids.Take(count > 0 ? count : ids.Count).ToArray();
 
         int rebalanced = 0;
-        foreach (var id in toRebalance)
+        foreach (var batch in toRebalance.Chunk(50))
         {
-            await grains.GetGrain<IReminderWorkerGrain>(id).ReRegisterAsync();
-            rebalanced++;
+            await Task.WhenAll(batch.Select(id =>
+                grains.GetGrain<IReminderWorkerGrain>(id).ReRegisterAsync()));
+            rebalanced += batch.Length;
+
+            await Task.Delay(100);
         }
 
         return Ok(new { Rebalanced = rebalanced });
     }
 
+    [HttpGet("reminder-stats")]
+    public async Task<IActionResult> ReminderStats()
+    {
+        var snapshot = await grains.GetGrain<IReminderStatsGrain>("stats").GetSnapshotAsync();
+        return Ok(snapshot);
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using Orleans.Timers;
+using System.Diagnostics;
 
 namespace OrleansPlayground.Grains;
 
@@ -112,16 +113,32 @@ public sealed class ReminderWorkerGrain(
 
     public async Task ReceiveReminder(string name, TickStatus status)
     {
-        await Task.Delay(Random.Shared.Next(50, 1200)); // Simulate work)
-        logger.LogInformation(
-            "[ReminderTick] {GrainType} ticked. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
-            _grainType,
+        var actualTime = DateTime.UtcNow;
+        var expectedTime = status.CurrentTickTime;
+        var delayMs = (actualTime - expectedTime).TotalMilliseconds;
+
+        var sw = Stopwatch.StartNew();
+        // simulate or execute your work
+        await Task.Delay(Random.Shared.Next(50, 1200));
+        sw.Stop();
+
+        await grains.GetGrain<IReminderStatsGrain>("stats").RecordAsync(
             this.GetPrimaryKeyString(),
             siloDetails.Name,
-            DateTime.UtcNow);
+            expectedTime,
+            actualTime,
+            delayMs,
+            sw.ElapsedMilliseconds
+        );
 
-        // Here’s where you can see migrations
-        //MigrateOnIdle();
+        logger.LogInformation(
+            "[ReminderTick] Grain={GrainId}, Silo={Silo}, Delay={Delay:F1}ms, Duration={Duration:F1}ms, Time={Time:O}",
+            this.GetPrimaryKeyString(),
+            siloDetails.Name,
+            delayMs,
+            sw.ElapsedMilliseconds,
+            actualTime
+        );
     }
 }
 
