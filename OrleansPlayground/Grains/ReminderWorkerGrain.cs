@@ -57,8 +57,9 @@ public sealed class ReminderWorkerGrain(
         await base.OnActivateAsync(token);
     }
 
-    public override Task OnDeactivateAsync(DeactivationReason reason, CancellationToken token)
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken token)
     {
+        await state.WriteStateAsync();
         logger.LogInformation(
             "[Deactivation] {GrainType} deactivated. GrainId={GrainId}, Silo={Silo}, Reason={Reason}, Time={Time:O}",
             _grainType,
@@ -67,7 +68,7 @@ public sealed class ReminderWorkerGrain(
             reason.Description,
             DateTime.UtcNow);
 
-        return base.OnDeactivateAsync(reason, token);
+        await base.OnDeactivateAsync(reason, token);
     }
 
     public async Task EnsureRegisteredAsync(TimeSpan due, TimeSpan period)
@@ -151,8 +152,6 @@ public sealed class ReminderWorkerGrain(
         state.State.PerSiloCounts[silo] = state.State.PerSiloCounts.TryGetValue(silo, out var c) ? c + 1 : 1;
         state.State.PerSiloDelayTotals[silo] =
             state.State.PerSiloDelayTotals.TryGetValue(silo, out var d) ? d + delayMs : delayMs;
-
-        await state.WriteStateAsync();
 
         logger.LogInformation(
             "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",
