@@ -8,13 +8,34 @@ public interface IReminderWorkerGrain : IGrainWithStringKey
     Task EnsureRegisteredAsync(TimeSpan due, TimeSpan perio);
     Task<bool> UnregisterAsync();
     Task<bool> ReRegisterAsync();  // new
+    Task<ReminderWorkerStats> GetStatsAsync();
 }
+
+[GenerateSerializer]
+public sealed class ReminderWorkerState
+{
+    [Id(0)] public int TickCount { get; set; }
+    [Id(1)] public DateTime? FirstTick { get; set; }
+    [Id(2)] public DateTime? LastTick { get; set; }
+    [Id(3)] public string? LastSilo { get; set; }
+}
+
+[GenerateSerializer]
+public record ReminderWorkerStats(
+    string GrainId,
+    int TickCount,
+    DateTime? FirstTick,
+    DateTime? LastTick,
+    string LastSilo);
+
+
 
 public sealed class ReminderWorkerGrain(
     ILogger<ReminderWorkerGrain> logger,
     IReminderRegistry registry,
     IGrainFactory grains,
-    ILocalSiloDetails siloDetails)
+    ILocalSiloDetails siloDetails,
+    [PersistentState("worker", "catalogStore")] IPersistentState<ReminderWorkerState> state)
     : Grain, IReminderWorkerGrain, IRemindable
 {
     private const string ReminderName = "periodic";
@@ -113,32 +134,30 @@ public sealed class ReminderWorkerGrain(
 
     public async Task ReceiveReminder(string name, TickStatus status)
     {
-        var actualTime = DateTime.UtcNow;
-        var expectedTime = status.CurrentTickTime;
-        var delayMs = (actualTime - expectedTime).TotalMilliseconds;
+        var now = DateTime.UtcNow;
+        state.State.TickCount++;
+        state.State.FirstTick ??= now;
+        state.State.LastTick = now;
+        state.State.LastSilo = siloDetails.Name;
 
-        var sw = Stopwatch.StartNew();
-        // simulate or execute your work
-        await Task.Delay(Random.Shared.Next(50, 1200));
-        sw.Stop();
-
-        await grains.GetGrain<IReminderStatsGrain>("stats").RecordAsync(
-            this.GetPrimaryKeyString(),
-            siloDetails.Name,
-            expectedTime,
-            actualTime,
-            delayMs,
-            sw.ElapsedMilliseconds
-        );
+        await state.WriteStateAsync(); // durable save
 
         logger.LogInformation(
-            "[ReminderTick] Grain={GrainId}, Silo={Silo}, Delay={Delay:F1}ms, Duration={Duration:F1}ms, Time={Time:O}",
+            "[Tick] Grain={Id}, Count={Count}, Silo={Silo}, Time={Time:O}",
             this.GetPrimaryKeyString(),
+            state.State.TickCount,
             siloDetails.Name,
-            delayMs,
-            sw.ElapsedMilliseconds,
-            actualTime
-        );
+            now);
+
+        await Task.Delay(Random.Shared.Next(50, 400)); // simulate work
     }
+
+    public Task<ReminderWorkerStats> GetStatsAsync()
+        => Task.FromResult(new ReminderWorkerStats(
+            this.GetPrimaryKeyString(),
+            state.State.TickCount,
+            state.State.FirstTick,
+            state.State.LastTick,
+            state.State.LastSilo ?? siloDetails.Name));
 }
 

@@ -60,10 +60,11 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
         return Ok(new { Rebalanced = rebalanced });
     }
 
-    [HttpGet("reminder-stats")]
-    public async Task<IActionResult> ReminderStats()
+    [HttpGet("reminder-cluster-stats")]
+    public async Task<IActionResult> ReminderClusterStats()
     {
-        var snapshot = await grains.GetGrain<IReminderStatsGrain>("stats").GetSnapshotAsync();
-        return Ok(snapshot);
+        var stats = await grains.GetGrain<IReminderStatsGrain>("stats").GetClusterStatsAsync();
+        return Ok(stats);
     }
+
 }
