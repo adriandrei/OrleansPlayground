@@ -3,32 +3,34 @@ using System.Diagnostics;
 
 namespace OrleansPlayground.Grains;
 
+[GenerateSerializer]
+public sealed class ReminderWorkerState
+{
+    [Id(0)] public int TotalTicks { get; set; }
+    [Id(1)] public DateTime? FirstTick { get; set; }
+    [Id(2)] public DateTime? LastTick { get; set; }
+    [Id(3)] public Dictionary<string, int> PerSiloCounts { get; set; } = new();
+    [Id(4)] public Dictionary<string, double> PerSiloDelayTotals { get; set; } = new();
+    [Id(5)] public double TotalDelayMs { get; set; }
+}
+
 public interface IReminderWorkerGrain : IGrainWithStringKey
 {
-    Task EnsureRegisteredAsync(TimeSpan due, TimeSpan perio);
+    Task EnsureRegisteredAsync(TimeSpan due, TimeSpan period);
     Task<bool> UnregisterAsync();
     Task<bool> ReRegisterAsync();  // new
     Task<ReminderWorkerStats> GetStatsAsync();
 }
 
 [GenerateSerializer]
-public sealed class ReminderWorkerState
-{
-    [Id(0)] public int TickCount { get; set; }
-    [Id(1)] public DateTime? FirstTick { get; set; }
-    [Id(2)] public DateTime? LastTick { get; set; }
-    [Id(3)] public string? LastSilo { get; set; }
-}
-
-[GenerateSerializer]
 public record ReminderWorkerStats(
     string GrainId,
-    int TickCount,
+    int TotalTicks,
+    double AverageDelayMs,
     DateTime? FirstTick,
     DateTime? LastTick,
-    string LastSilo);
-
-
+    Dictionary<string, int> PerSiloCounts,
+    Dictionary<string, double> PerSiloAverageDelays);
 
 public sealed class ReminderWorkerGrain(
     ILogger<ReminderWorkerGrain> logger,
@@ -135,29 +137,51 @@ public sealed class ReminderWorkerGrain(
     public async Task ReceiveReminder(string name, TickStatus status)
     {
         var now = DateTime.UtcNow;
-        state.State.TickCount++;
+        var expected = status.CurrentTickTime;
+        var delayMs = (now - expected).TotalMilliseconds;
+        var silo = siloDetails.Name;
+
+        // initialize
         state.State.FirstTick ??= now;
         state.State.LastTick = now;
-        state.State.LastSilo = siloDetails.Name;
+        state.State.TotalTicks++;
+        state.State.TotalDelayMs += delayMs;
 
-        await state.WriteStateAsync(); // durable save
+        // per-silo stats
+        state.State.PerSiloCounts[silo] = state.State.PerSiloCounts.TryGetValue(silo, out var c) ? c + 1 : 1;
+        state.State.PerSiloDelayTotals[silo] =
+            state.State.PerSiloDelayTotals.TryGetValue(silo, out var d) ? d + delayMs : delayMs;
+
+        if (state.State.TotalTicks % 10 == 0)
+            await state.WriteStateAsync();
 
         logger.LogInformation(
-            "[Tick] Grain={Id}, Count={Count}, Silo={Silo}, Time={Time:O}",
+            "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",
             this.GetPrimaryKeyString(),
-            state.State.TickCount,
-            siloDetails.Name,
+            state.State.TotalTicks,
+            delayMs,
+            silo,
             now);
-
-        await Task.Delay(Random.Shared.Next(50, 400)); // simulate work
     }
 
     public Task<ReminderWorkerStats> GetStatsAsync()
-        => Task.FromResult(new ReminderWorkerStats(
+    {
+        var avgDelay = state.State.TotalTicks > 0
+            ? state.State.TotalDelayMs / state.State.TotalTicks
+            : 0.0;
+
+        var siloAverages = state.State.PerSiloCounts
+            .ToDictionary(kv => kv.Key,
+                          kv => state.State.PerSiloDelayTotals[kv.Key] / kv.Value);
+
+        return Task.FromResult(new ReminderWorkerStats(
             this.GetPrimaryKeyString(),
-            state.State.TickCount,
+            state.State.TotalTicks,
+            avgDelay,
             state.State.FirstTick,
             state.State.LastTick,
-            state.State.LastSilo ?? siloDetails.Name));
+            new Dictionary<string, int>(state.State.PerSiloCounts),
+            siloAverages));
+    }
 }
 

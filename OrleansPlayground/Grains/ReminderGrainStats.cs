@@ -8,8 +8,9 @@ public interface IReminderStatsGrain : IGrainWithStringKey
 [GenerateSerializer]
 public record ReminderClusterSnapshot(
     int TotalTicks,
-    double AverageTicksPerGrain,
+    double AverageDelayMs,
     Dictionary<string, int> PerSiloCounts,
+    Dictionary<string, double> PerSiloAverageDelays,
     ReminderWorkerStats[] Workers);
 
 public sealed class ReminderStatsGrain(IGrainFactory grains, ILogger<ReminderStatsGrain> logger)
@@ -20,17 +21,27 @@ public sealed class ReminderStatsGrain(IGrainFactory grains, ILogger<ReminderSta
         var catalog = grains.GetGrain<IWorkerCatalogGrain>("catalog");
         var ids = await catalog.ListAsync();
 
-        var statsTasks = ids.Select(id =>
-            grains.GetGrain<IReminderWorkerGrain>(id).GetStatsAsync()).ToArray();
+        var stats = await Task.WhenAll(ids.Select(id =>
+            grains.GetGrain<IReminderWorkerGrain>(id).GetStatsAsync()));
 
-        var results = await Task.WhenAll(statsTasks);
+        var totalTicks = stats.Sum(s => s.TotalTicks);
+        var avgDelay = stats.Length > 0 ? stats.Average(s => s.AverageDelayMs) : 0;
 
-        var total = results.Sum(r => r.TickCount);
-        var avg = results.Length > 0 ? total / (double)results.Length : 0;
-        var perSilo = results.GroupBy(r => r.LastSilo)
-                             .ToDictionary(g => g.Key, g => g.Sum(r => r.TickCount));
+        var perSiloCounts = new Dictionary<string, int>();
+        var perSiloAvgDelay = new Dictionary<string, double>();
 
-        return new ReminderClusterSnapshot(total, avg, perSilo, results);
+        foreach (var worker in stats)
+        {
+            foreach (var kv in worker.PerSiloCounts)
+                perSiloCounts[kv.Key] = perSiloCounts.GetValueOrDefault(kv.Key) + kv.Value;
+
+            foreach (var kv in worker.PerSiloAverageDelays)
+                perSiloAvgDelay[kv.Key] =
+                    perSiloAvgDelay.TryGetValue(kv.Key, out var current)
+                        ? (current + kv.Value) / 2
+                        : kv.Value;
+        }
+
+        return new ReminderClusterSnapshot(totalTicks, avgDelay, perSiloCounts, perSiloAvgDelay, stats);
     }
 }
-
