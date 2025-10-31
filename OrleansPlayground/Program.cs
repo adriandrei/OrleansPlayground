@@ -28,7 +28,7 @@ builder.Host.UseOrleans(silo =>
 
     silo.Configure<ReminderOptions>(o =>
     {
-        o.RefreshReminderListPeriod = TimeSpan.FromSeconds(20);
+        o.RefreshReminderListPeriod = TimeSpan.FromMinutes(1);
         o.MinimumReminderPeriod = TimeSpan.FromSeconds(10);
     });
 
