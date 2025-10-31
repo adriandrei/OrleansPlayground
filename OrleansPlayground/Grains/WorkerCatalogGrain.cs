@@ -1,9 +1,16 @@
-﻿namespace OrleansPlayground;
+﻿namespace OrleansPlayground.Grains;
 
 [GenerateSerializer]
 public sealed class WorkerCatalogState
 {
     [Id(0)] public HashSet<string> Ids { get; set; } = new();
+}
+
+public interface IWorkerCatalogGrain : IGrainWithStringKey
+{
+    Task AddAsync(string id);
+    Task RemoveAsync(string id);
+    Task<IReadOnlyCollection<string>> ListAsync();
 }
 
 public sealed class WorkerCatalogGrain(

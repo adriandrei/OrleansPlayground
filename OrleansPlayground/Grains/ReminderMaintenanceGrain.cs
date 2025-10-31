@@ -1,4 +1,9 @@
-﻿namespace OrleansPlayground;
+﻿namespace OrleansPlayground.Grains;
+
+public interface IRemindersMaintenanceGrain : IGrainWithStringKey
+{
+    Task<int> PurgeAsync(int count);
+}
 
 public sealed class RemindersMaintenanceGrain(IGrainFactory grains)
     : Grain, IRemindersMaintenanceGrain

@@ -1,7 +1,13 @@
-﻿using Orleans.Runtime;
-using Orleans.Timers;
+﻿using Orleans.Timers;
 
-namespace OrleansPlayground;
+namespace OrleansPlayground.Grains;
+
+public interface IReminderWorkerGrain : IGrainWithStringKey
+{
+    Task EnsureRegisteredAsync(TimeSpan? due = null, TimeSpan? period = null);
+    Task<bool> UnregisterAsync();
+    Task<bool> ReRegisterAsync();  // new
+}
 
 public sealed class ReminderWorkerGrain(
     ILogger<ReminderWorkerGrain> logger,

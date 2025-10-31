@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Azure.Cosmos;
 using Orleans.Configuration;
 using OrleansPlayground;
 
@@ -8,6 +8,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
+
+
 
 var cosmosConnectionString =
     "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
@@ -20,11 +22,13 @@ builder.Host.UseOrleans(silo =>
         opt.ServiceId = "ReminderPlayground";
     });
 
-    silo.ConfigureEndpoints(siloPort: int.Parse(Environment.GetEnvironmentVariable("SiloPort")), gatewayPort: 30000);
+    silo.ConfigureEndpoints(
+        siloPort: int.Parse(Environment.GetEnvironmentVariable("SiloPort") ?? "11111"),
+        gatewayPort: 30000);
 
     silo.Configure<ReminderOptions>(o =>
     {
-        o.RefreshReminderListPeriod = TimeSpan.FromMinutes(2);
+        o.RefreshReminderListPeriod = TimeSpan.FromSeconds(20);
         o.MinimumReminderPeriod = TimeSpan.FromSeconds(10);
     });
 
@@ -58,9 +62,14 @@ builder.Host.UseOrleans(silo =>
         opt.IsResourceCreationEnabled = true;
     });
 
-
-    silo.UseDashboard(opt => opt.HostSelf = true);
+    silo.UseDashboard(opt =>
+    {
+        opt.HostSelf = true;
+        opt.Port = 8080;
+        opt.BasePath = "/";
+    });
 });
+
 
 var app = builder.Build();
 
@@ -75,6 +84,10 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-app.UseOrleansDashboard(new OrleansDashboard.DashboardOptions { BasePath = "/dashboard" });
+app.UseOrleansDashboard(new OrleansDashboard.DashboardOptions
+{
+    BasePath = "/dashboard"
+});
+
 
 app.Run();
