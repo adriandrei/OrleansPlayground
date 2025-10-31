@@ -20,7 +20,7 @@ builder.Host.UseOrleans(silo =>
         opt.ServiceId = "ReminderPlayground";
     });
 
-    silo.ConfigureEndpoints(siloPort: 11111, gatewayPort: 30000);
+    silo.ConfigureEndpoints(siloPort: int.Parse(Environment.GetEnvironmentVariable("SiloPort")), gatewayPort: 30000);
 
     silo.Configure<ReminderOptions>(o =>
     {
