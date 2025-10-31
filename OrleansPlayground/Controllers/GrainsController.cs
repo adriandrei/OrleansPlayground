@@ -10,25 +10,13 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromQuery] int count = 1)
     {
-        const int BatchSize = 50; // Tune this depending on silo count & CPU
-        var allIds = Enumerable.Range(0, count)
-            .Select(_ => Guid.NewGuid().ToString("N"))
-            .ToArray();
-
-        for (int i = 0; i < allIds.Length; i += BatchSize)
+        for (int i = 0; i < count; i++)
         {
-            var batch = allIds.Skip(i).Take(BatchSize).ToArray();
-
-            var tasks = batch.Select(id =>
-                grains.GetGrain<IReminderWorkerGrain>(id)
-                      .EnsureRegisteredAsync(Configuration.ReminderDue, Configuration.ReminderPeriod));
-
-            await Task.WhenAll(tasks);
-
-            Console.WriteLine($"Registered batch {i / BatchSize + 1} ({batch.Length} grains)");
+            var id = Guid.NewGuid().ToString("N");
+            await grains.GetGrain<IReminderWorkerGrain>(id)
+                        .EnsureRegisteredAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
         }
-
-        return Ok();
+        return Ok(new { Registered = count });
     }
 
     [HttpGet("list")]
