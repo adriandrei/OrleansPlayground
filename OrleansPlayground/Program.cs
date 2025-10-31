@@ -30,8 +30,8 @@ builder.Host.UseOrleans(silo =>
 
     silo.Configure<GrainCollectionOptions>(o =>
     {
-        o.CollectionAge = TimeSpan.FromSeconds(15);
-        o.CollectionQuantum = TimeSpan.FromSeconds(20);
+        o.CollectionAge = TimeSpan.FromSeconds(20);
+        o.CollectionQuantum = TimeSpan.FromSeconds(15);
     });
 
     silo.UseCosmosClustering(opt =>
