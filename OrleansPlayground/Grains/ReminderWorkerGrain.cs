@@ -120,7 +120,7 @@ public sealed class ReminderWorkerGrain(
             DateTime.UtcNow);
 
         // Here’s where you can see migrations
-        MigrateOnIdle();
+        //MigrateOnIdle();
     }
 }
 
