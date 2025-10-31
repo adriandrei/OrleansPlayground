@@ -101,6 +101,18 @@ public sealed class ReminderWorkerGrain(
             await grains.GetGrain<IWorkerCatalogGrain>("catalog")
                         .RemoveAsync(this.GetPrimaryKeyString());
 
+            if (state.RecordExists)
+            {
+                await state.ClearStateAsync();
+                logger.LogInformation(
+                    "[Unregister] {GrainType} cleared persisted state. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+                    _grainType,
+                    this.GetPrimaryKeyString(),
+                    siloDetails.Name,
+                    DateTime.UtcNow);
+            }
+
+
             logger.LogInformation(
                 "[Unregister] {GrainType} unregistered reminder. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
                 _grainType,
