@@ -53,7 +53,7 @@ public sealed class ReminderWorkerGrain(
             //await Task.Delay(Random.Shared.Next(20, 80));
             logger.LogInformation("Grain {Id} ticked at {UtcNow:O}", this.GetPrimaryKeyString(), DateTime.UtcNow);
 
-            //MigrateOnIdle();
+            MigrateOnIdle();
         }
         catch (Exception ex)
         {

@@ -22,16 +22,16 @@ builder.Host.UseOrleans(silo =>
 
     silo.ConfigureEndpoints(siloPort: 11111, gatewayPort: 30000);
 
-    silo.Configure<ReminderOptions>(opt =>
+    silo.Configure<ReminderOptions>(o =>
     {
-        opt.RefreshReminderListPeriod = TimeSpan.FromMinutes(2);
-        opt.MinimumReminderPeriod = TimeSpan.FromSeconds(10);
+        o.RefreshReminderListPeriod = TimeSpan.FromSeconds(15);
+        o.MinimumReminderPeriod = TimeSpan.FromSeconds(10);
     });
 
-    silo.Configure<GrainCollectionOptions>(opt =>
+    silo.Configure<GrainCollectionOptions>(o =>
     {
-        opt.CollectionAge = TimeSpan.FromSeconds(6);
-        opt.CollectionQuantum = TimeSpan.FromSeconds(5);
+        o.CollectionAge = TimeSpan.FromSeconds(5);
+        o.CollectionQuantum = TimeSpan.FromSeconds(5);
     });
 
     silo.UseCosmosClustering(opt =>
