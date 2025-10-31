@@ -56,20 +56,13 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
     [HttpPost("rebalance")]
     public async Task<IActionResult> Rebalance([FromQuery] int count = 0)
     {
-        var ids = await grains.GetGrain<IWorkerCatalogGrain>("catalog").ListAsync();
-        var toRebalance = ids.Take(count > 0 ? count : ids.Count).ToArray();
-
-        int rebalanced = 0;
-        foreach (var batch in toRebalance.Chunk(50))
+        for (int i = 0; i < count; i++)
         {
-            await Task.WhenAll(batch.Select(id =>
-                grains.GetGrain<IReminderWorkerGrain>(id).ReRegisterAsync()));
-            rebalanced += batch.Length;
-
-            await Task.Delay(100);
+            var id = Guid.NewGuid().ToString("N");
+            await grains.GetGrain<IReminderWorkerGrain>(id)
+                        .EnsureRegisteredAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
         }
-
-        return Ok(new { Rebalanced = rebalanced });
+        return Ok(new { Registered = count });
     }
 
     [HttpGet("reminder-cluster-stats")]
