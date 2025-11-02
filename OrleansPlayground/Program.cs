@@ -30,8 +30,8 @@ builder.Host.UseOrleans(silo =>
 
     silo.Configure<GrainCollectionOptions>(o =>
     {
-        o.CollectionAge = TimeSpan.FromSeconds(10);
-        o.CollectionQuantum = TimeSpan.FromSeconds(9);
+        o.CollectionAge = TimeSpan.FromSeconds(60);
+        o.CollectionQuantum = TimeSpan.FromSeconds(30);
     });
 
     silo.Configure<MessagingOptions>(options =>
