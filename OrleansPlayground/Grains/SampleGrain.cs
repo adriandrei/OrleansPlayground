@@ -11,6 +11,7 @@ public interface ISampleGrain : IGrainWithStringKey
     Task<int> AddAsync(int value);
     Task<int> SubstractAsync(int value);
     Task<int> CurrentTotal();
+    Task SimulateBusy();
 }
 
 public class SampleGrain(
@@ -57,5 +58,10 @@ public class SampleGrain(
     public Task<int> CurrentTotal()
     {
         return Task.FromResult(state.State.Value);
+    }
+
+    public async Task SimulateBusy()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(40));
     }
 }

@@ -33,4 +33,12 @@ public class SampleController(IGrainFactory grainFactory) : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("simulate-busy")]
+    public async Task<IActionResult> SimulateBusy()
+    {
+        var grain = grainFactory.GetGrain<ISampleGrain>("demo-calculator");
+        await grain.SimulateBusy();
+        return Ok();
+    }
 }
