@@ -172,6 +172,8 @@ public sealed class ReminderWorkerGrainWithState(
                 Random.Shared.Next(800, 3200) :
                 Random.Shared.Next(50, 800));
 
+        MigrateOnIdle();
+
         //logger.LogInformation(
         //    "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",
         //    this.GetPrimaryKeyString(),
