@@ -22,7 +22,7 @@ public sealed class ReminderStatsGrain(IGrainFactory grains, ILogger<ReminderSta
         var ids = await catalog.ListAsync();
 
         var stats = await Task.WhenAll(ids.Select(id =>
-            grains.GetGrain<IReminderWorkerGrain>(id).GetStatsAsync()));
+            grains.GetGrain<IReminderWorkerGrainWithState>(id).GetStatsAsync()));
 
         var totalTicks = stats.Sum(s => s.TotalTicks);
         var avgDelay = stats.Length > 0 ? stats.Average(s => s.AverageDelayMs) : 0;

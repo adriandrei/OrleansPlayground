@@ -13,13 +13,19 @@ public sealed class ReminderWorkerState
     [Id(5)] public double TotalDelayMs { get; set; }
 }
 
-public interface IReminderWorkerGrain : IGrainWithStringKey
+public interface IMyGrain : IGrainWithStringKey
 {
-    Task EnsureRegisteredAsync(TimeSpan due, TimeSpan period);
-    Task<bool> UnregisterAsync();
-    Task<bool> ReRegisterAsync();  // new
-    Task<ReminderWorkerStats> GetStatsAsync();
+    Task RegisterReminderAsync(TimeSpan due, TimeSpan period);
+    Task<bool> UnregisterReminderAsync();
 }
+
+public interface IReminderWorkerGrainWithState : IMyGrain 
+{
+    Task<ReminderWorkerStats> GetStatsAsync();
+    Task<bool> ForceIdleAsync();
+}
+
+public interface IReminderWorkerGrain : IMyGrain { }
 
 [GenerateSerializer]
 public record ReminderWorkerStats(
@@ -31,13 +37,84 @@ public record ReminderWorkerStats(
     Dictionary<string, int> PerSiloCounts,
     Dictionary<string, double> PerSiloAverageDelays);
 
+public sealed class RemidnerWorkerGrain(
+    ILogger<ReminderWorkerGrainWithState> logger,
+    IReminderRegistry registry,
+    IGrainFactory grains,
+    ILocalSiloDetails siloDetails)
+    : Grain, IReminderWorkerGrain, IRemindable
+{
+    private const string ReminderName = "reminder";
+    private readonly string _grainType = nameof(ReminderWorkerGrainWithState);
+
+    public override async Task OnActivateAsync(CancellationToken token)
+    {
+        logger.LogInformation(
+            "[Activation] {GrainType} activated. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            siloDetails.Name,
+            DateTime.UtcNow);
+
+        await base.OnActivateAsync(token);
+    }
+
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken token)
+    {
+        logger.LogInformation(
+            "[Deactivation] {GrainType} deactivated. GrainId={GrainId}, Reason={Reason}, Time={Time:O}",
+            _grainType,
+            this.GetPrimaryKeyString(),
+            reason.Description,
+            DateTime.UtcNow);
+
+        await base.OnDeactivateAsync(reason, token);
+    }
+
+    public async Task RegisterReminderAsync(TimeSpan due, TimeSpan period)
+    {
+        await registry.RegisterOrUpdateReminder(
+            this.GetGrainId(),
+            ReminderName,
+            due,
+            period);
+
+        await grains.GetGrain<IWorkerCatalogGrain>("stateless-catalog")
+                    .AddAsync(this.GetPrimaryKeyString());
+    }
+
+    public async Task ReceiveReminder(string reminderName, TickStatus status)
+    {
+        await Task.Delay(
+            Random.Shared.Next(5, 20) > 18 ?
+                Random.Shared.Next(800, 3200) :
+                Random.Shared.Next(50, 800));
+    }
+
+    public async Task<bool> UnregisterReminderAsync()
+    {
+        var r = await registry.GetReminder(this.GetGrainId(), ReminderName);
+        if (r is not null)
+        {
+            await registry.UnregisterReminder(this.GetGrainId(), r);
+            await grains.GetGrain<IWorkerCatalogGrain>("stateless-catalog")
+                        .RemoveAsync(this.GetPrimaryKeyString());
+
+            DeactivateOnIdle();
+            return true;
+        }
+
+        return false;
+    }
+}
+
 public sealed class ReminderWorkerGrainWithState(
     ILogger<ReminderWorkerGrainWithState> logger,
     IReminderRegistry registry,
     IGrainFactory grains,
     ILocalSiloDetails siloDetails,
     [PersistentState("worker", "catalogStore")] IPersistentState<ReminderWorkerState> state)
-    : Grain, IReminderWorkerGrain, IRemindable
+    : Grain, IReminderWorkerGrainWithState, IRemindable
 {
     private const string ReminderName = "periodic";
     private string? _lastSiloName;
@@ -70,7 +147,7 @@ public sealed class ReminderWorkerGrainWithState(
         await base.OnDeactivateAsync(reason, token);
     }
 
-    public async Task EnsureRegisteredAsync(TimeSpan due, TimeSpan period)
+    public async Task RegisterReminderAsync(TimeSpan due, TimeSpan period)
     {
         await registry.RegisterOrUpdateReminder(
             this.GetGrainId(),
@@ -78,7 +155,7 @@ public sealed class ReminderWorkerGrainWithState(
             due,
             period);
 
-        await grains.GetGrain<IWorkerCatalogGrain>("catalog")
+        await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog")
                     .AddAsync(this.GetPrimaryKeyString());
 
         //logger.LogInformation(
@@ -91,13 +168,13 @@ public sealed class ReminderWorkerGrainWithState(
         //    DateTime.UtcNow);
     }
 
-    public async Task<bool> UnregisterAsync()
+    public async Task<bool> UnregisterReminderAsync()
     {
         var r = await registry.GetReminder(this.GetGrainId(), ReminderName);
         if (r is not null)
         {
             await registry.UnregisterReminder(this.GetGrainId(), r);
-            await grains.GetGrain<IWorkerCatalogGrain>("catalog")
+            await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog")
                         .RemoveAsync(this.GetPrimaryKeyString());
 
             if (state.RecordExists)
@@ -133,7 +210,7 @@ public sealed class ReminderWorkerGrainWithState(
         return false;
     }
 
-    public Task<bool> ReRegisterAsync()
+    public Task<bool> ForceIdleAsync()
     {
         //logger.LogInformation(
         //    "[ReRegister] {GrainType} re-register requested. GrainId={GrainId}, Silo={Silo}, Time={Time:O}",
@@ -172,7 +249,7 @@ public sealed class ReminderWorkerGrainWithState(
                 Random.Shared.Next(800, 3200) :
                 Random.Shared.Next(50, 800));
 
-        MigrateOnIdle();
+        //MigrateOnIdle();
 
         //logger.LogInformation(
         //    "[Tick] Grain={Id}, Count={Count}, Delay={Delay:F1}ms, Silo={Silo}, Time={Time:O}",

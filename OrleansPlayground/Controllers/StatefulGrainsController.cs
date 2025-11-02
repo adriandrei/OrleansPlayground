@@ -4,8 +4,8 @@ using OrleansPlayground.Grains;
 namespace OrleansPlayground.Controllers;
 
 [ApiController]
-[Route("grains")]
-public sealed class GrainsController(IGrainFactory grains) : ControllerBase
+[Route("stateful-grains")]
+public sealed class StatefulGrainsController(IGrainFactory grains) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromQuery] int count = 1)
@@ -20,8 +20,8 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
             var batch = allIds.Skip(i).Take(BatchSize).ToArray();
 
             var tasks = batch.Select(id =>
-                grains.GetGrain<IReminderWorkerGrain>(id)
-                      .EnsureRegisteredAsync(Configuration.ReminderDue, Configuration.ReminderPeriod));
+                grains.GetGrain<IReminderWorkerGrainWithState>(id)
+                      .RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod));
 
             await Task.WhenAll(tasks);
 
@@ -34,14 +34,14 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
     [HttpGet("list")]
     public async Task<IActionResult> List()
     {
-        var ids = await grains.GetGrain<IWorkerCatalogGrain>("catalog").ListAsync();
+        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog").ListAsync();
         return Ok(ids);
     }
 
     [HttpGet("count")]
     public async Task<IActionResult> Count()
     {
-        var ids = await grains.GetGrain<IWorkerCatalogGrain>("catalog").ListAsync();
+        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog").ListAsync();
         return Ok(ids.Count);
     }
 
@@ -49,7 +49,7 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
     public async Task<IActionResult> Purge([FromQuery] int count = 0)
     {
         var maint = grains.GetGrain<IRemindersMaintenanceGrain>("maintenance");
-        var purged = await maint.PurgeAsync(count);
+        var purged = await maint.Purge(count, "stateful-catalog");
         return Ok(new { Purged = purged });
     }
 
@@ -59,8 +59,8 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
         for (int i = 0; i < count; i++)
         {
             var id = Guid.NewGuid().ToString("N");
-            await grains.GetGrain<IReminderWorkerGrain>(id)
-                        .EnsureRegisteredAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
+            await grains.GetGrain<IReminderWorkerGrainWithState>(id)
+                        .RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
         }
         return Ok(new { Registered = count });
     }
@@ -71,5 +71,4 @@ public sealed class GrainsController(IGrainFactory grains) : ControllerBase
         var stats = await grains.GetGrain<IReminderStatsGrain>("stats").GetClusterStatsAsync();
         return Ok(stats);
     }
-
 }
