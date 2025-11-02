@@ -1,5 +1,4 @@
 ﻿using Orleans.Timers;
-using System.Diagnostics;
 
 namespace OrleansPlayground.Grains;
 
@@ -32,8 +31,8 @@ public record ReminderWorkerStats(
     Dictionary<string, int> PerSiloCounts,
     Dictionary<string, double> PerSiloAverageDelays);
 
-public sealed class ReminderWorkerGrain(
-    ILogger<ReminderWorkerGrain> logger,
+public sealed class ReminderWorkerGrainWithState(
+    ILogger<ReminderWorkerGrainWithState> logger,
     IReminderRegistry registry,
     IGrainFactory grains,
     ILocalSiloDetails siloDetails,
@@ -42,7 +41,7 @@ public sealed class ReminderWorkerGrain(
 {
     private const string ReminderName = "periodic";
     private string? _lastSiloName;
-    private readonly string _grainType = nameof(ReminderWorkerGrain);
+    private readonly string _grainType = nameof(ReminderWorkerGrainWithState);
 
     public override async Task OnActivateAsync(CancellationToken token)
     {
