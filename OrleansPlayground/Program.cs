@@ -1,6 +1,4 @@
-using Microsoft.Azure.Cosmos;
 using Orleans.Configuration;
-using OrleansPlayground;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,8 +6,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
-
-
 
 var cosmosConnectionString =
     "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
@@ -34,8 +30,13 @@ builder.Host.UseOrleans(silo =>
 
     silo.Configure<GrainCollectionOptions>(o =>
     {
-        o.CollectionAge = TimeSpan.FromMinutes(1);
-        o.CollectionQuantum = TimeSpan.FromSeconds(30);
+        o.CollectionAge = TimeSpan.FromSeconds(10);
+        o.CollectionQuantum = TimeSpan.FromSeconds(9);
+    });
+
+    silo.Configure<MessagingOptions>(options =>
+    {
+        options.ResponseTimeout = TimeSpan.FromMinutes(2);
     });
 
     silo.UseCosmosClustering(opt =>
