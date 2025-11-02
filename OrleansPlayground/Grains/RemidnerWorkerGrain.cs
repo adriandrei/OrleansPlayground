@@ -56,6 +56,11 @@ public sealed class RemidnerWorkerGrain(
                 Random.Shared.Next(800, 3200) :
                 Random.Shared.Next(50, 800));
 
+        logger.LogInformation(
+            "[Tick] Grain={Id}, Time={Time:O}",
+            this.GetPrimaryKeyString(),
+            DateTime.UtcNow);
+
         MigrateOnIdle();
     }
 
