@@ -101,7 +101,7 @@ public sealed class StatelessGrainsController(IGrainFactory grains) : Controller
     public async Task<IActionResult> Purge([FromQuery] int count = 0)
     {
         var maint = grains.GetGrain<IRemindersMaintenanceGrain>("maintenance");
-        var purged = await maint.Purge<IReminderWorkerGrainWithState>(count, "stateless-catalog");
+        var purged = await maint.Purge<IReminderWorkerGrain>(count, "stateless-catalog");
         return Ok(new { Purged = purged });
     }
 

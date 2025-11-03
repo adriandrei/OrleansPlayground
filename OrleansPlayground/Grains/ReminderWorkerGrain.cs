@@ -8,14 +8,14 @@ public interface IReminderWorkerGrain : IMyGrain
 }
 
 public sealed class ReminderWorkerGrain(
-    ILogger<ReminderWorkerGrainWithState> logger,
+    ILogger<ReminderWorkerGrain> logger,
     IReminderRegistry registry,
     IGrainFactory grains,
     ILocalSiloDetails siloDetails)
     : Grain, IReminderWorkerGrain, IRemindable
 {
     private const string ReminderName = "reminder";
-    private readonly string _grainType = nameof(ReminderWorkerGrainWithState);
+    private readonly string _grainType = nameof(ReminderWorkerGrain);
 
     public override async Task OnActivateAsync(CancellationToken token)
     {
