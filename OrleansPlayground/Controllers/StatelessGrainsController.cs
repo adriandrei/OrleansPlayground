@@ -57,12 +57,13 @@ public sealed class StatelessGrainsController(IGrainFactory grains) : Controller
     [HttpPost("rebalance")]
     public async Task<IActionResult> Rebalance([FromQuery] int count = 0)
     {
-        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog").ListAsync();
+        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateless-catalog").ListAsync();
 
         foreach(var id in ids)
         {
-            await grains.GetGrain<IReminderWorkerGrain>(id)
-                        .RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
+            var grain = grains.GetGrain<IReminderWorkerGrain>(id);
+            await grain.UnregisterReminderAsync();
+            await grain.RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
         }
 
         return Ok(new { Registered = count });
