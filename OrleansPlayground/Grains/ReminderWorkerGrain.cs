@@ -2,8 +2,12 @@
 
 namespace OrleansPlayground.Grains;
 
-public interface IReminderWorkerGrain : IMyGrain { }
-public sealed class RemidnerWorkerGrain(
+public interface IReminderWorkerGrain : IMyGrain 
+{
+    Task RegisterReminderAsync(TimeSpan due, TimeSpan period);
+}
+
+public sealed class ReminderWorkerGrain(
     ILogger<ReminderWorkerGrainWithState> logger,
     IReminderRegistry registry,
     IGrainFactory grains,
@@ -64,7 +68,7 @@ public sealed class RemidnerWorkerGrain(
         MigrateOnIdle();
     }
 
-    public async Task<bool> UnregisterReminderAsync()
+    public async Task UnregisterReminderAsync()
     {
         var r = await registry.GetReminder(this.GetGrainId(), ReminderName);
         if (r is not null)
@@ -73,11 +77,8 @@ public sealed class RemidnerWorkerGrain(
             await grains.GetGrain<IWorkerCatalogGrain>("stateless-catalog")
                         .RemoveAsync(this.GetPrimaryKeyString());
 
-            DeactivateOnIdle();
-            return true;
+            MigrateOnIdle();
         }
-
-        return false;
     }
 }
 

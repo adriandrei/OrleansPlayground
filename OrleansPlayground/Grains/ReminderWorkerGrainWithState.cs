@@ -15,12 +15,12 @@ public sealed class ReminderWorkerState
 
 public interface IMyGrain : IGrainWithStringKey
 {
-    Task RegisterReminderAsync(TimeSpan due, TimeSpan period);
-    Task<bool> UnregisterReminderAsync();
+    Task UnregisterReminderAsync();
 }
 
-public interface IReminderWorkerGrainWithState : IMyGrain 
+public interface IReminderWorkerGrainWithState : IMyGrain
 {
+    Task RegisterReminderAsync(TimeSpan due, TimeSpan period);
     Task<ReminderWorkerStats> GetStatsAsync();
     Task<bool> ForceIdleAsync();
 }
@@ -96,7 +96,7 @@ public sealed class ReminderWorkerGrainWithState(
         //    DateTime.UtcNow);
     }
 
-    public async Task<bool> UnregisterReminderAsync()
+    public async Task UnregisterReminderAsync()
     {
         var r = await registry.GetReminder(this.GetGrainId(), ReminderName);
         if (r is not null)
@@ -125,7 +125,6 @@ public sealed class ReminderWorkerGrainWithState(
             //    DateTime.UtcNow);
 
             DeactivateOnIdle();
-            return true;
         }
 
         //logger.LogWarning(
@@ -135,7 +134,6 @@ public sealed class ReminderWorkerGrainWithState(
         //    siloDetails.Name,
         //    DateTime.UtcNow);
 
-        return false;
     }
 
     public Task<bool> ForceIdleAsync()
