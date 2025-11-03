@@ -65,7 +65,7 @@ public sealed class ReminderWorkerGrain(
             this.GetPrimaryKeyString(),
             DateTime.UtcNow);
 
-        //MigrateOnIdle();
+        MigrateOnIdle();
     }
 
     public async Task UnregisterReminderAsync()
