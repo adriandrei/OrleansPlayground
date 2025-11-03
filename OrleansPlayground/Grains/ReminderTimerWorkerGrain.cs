@@ -140,7 +140,7 @@ public class ReminderTimerWorkerGrain(
             this.GetPrimaryKeyString(),
             DateTime.UtcNow);
 
-        //MigrateOnIdle();
+        MigrateOnIdle();
     }
 
     private (TimeSpan timerDue, TimeSpan timerPeriod) ParseTimerPeriodFromName(string reminderName)
