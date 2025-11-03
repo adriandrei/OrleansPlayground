@@ -66,6 +66,6 @@ public sealed class StatelessGrainsController(IGrainFactory grains) : Controller
             await grain.RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
         }
 
-        return Ok(new { Registered = count });
+        return Ok(new { Reregistered = count });
     }
 }
