@@ -18,7 +18,7 @@ public sealed class ReminderStatsGrain(IGrainFactory grains, ILogger<ReminderSta
 {
     public async Task<ReminderClusterSnapshot> GetClusterStatsAsync()
     {
-        var catalog = grains.GetGrain<IWorkerCatalogGrain>("catalog");
+        var catalog = grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog");
         var ids = await catalog.ListAsync();
 
         var stats = await Task.WhenAll(ids.Select(id =>
