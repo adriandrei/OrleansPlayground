@@ -6,6 +6,7 @@ public interface IReminderTimerWorkerGrain : IMyGrain
 {
     Task RegisterReminderAsync(TimeSpan reminderDue, TimeSpan reminderPeriod, TimeSpan timerDue, TimeSpan timerPeriod);
 }
+
 public class ReminderTimerWorkerGrain(
     IGrainFactory grainFactory,
     IReminderRegistry remindersRegistry,

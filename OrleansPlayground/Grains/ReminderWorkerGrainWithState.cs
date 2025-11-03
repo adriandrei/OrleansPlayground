@@ -25,7 +25,6 @@ public interface IReminderWorkerGrainWithState : IMyGrain
     Task<bool> ForceIdleAsync();
 }
 
-
 [GenerateSerializer]
 public record ReminderWorkerStats(
     string GrainId,
@@ -38,8 +37,8 @@ public record ReminderWorkerStats(
 
 public sealed class ReminderWorkerGrainWithState(
     ILogger<ReminderWorkerGrainWithState> logger,
-    IReminderRegistry registry,
-    IGrainFactory grains,
+    IReminderRegistry reminderRegistry,
+    IGrainFactory grainFactory,
     ILocalSiloDetails siloDetails,
     [PersistentState("worker", "catalogStore")] IPersistentState<ReminderWorkerState> state)
     : Grain, IReminderWorkerGrainWithState, IRemindable
@@ -77,13 +76,13 @@ public sealed class ReminderWorkerGrainWithState(
 
     public async Task RegisterReminderAsync(TimeSpan due, TimeSpan period)
     {
-        await registry.RegisterOrUpdateReminder(
+        await reminderRegistry.RegisterOrUpdateReminder(
             this.GetGrainId(),
             ReminderName,
             due,
             period);
 
-        await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog")
+        await grainFactory.GetGrain<IWorkerCatalogGrain>("stateful-catalog")
                     .AddAsync(this.GetPrimaryKeyString());
 
         //logger.LogInformation(
@@ -98,11 +97,11 @@ public sealed class ReminderWorkerGrainWithState(
 
     public async Task UnregisterReminderAsync()
     {
-        var r = await registry.GetReminder(this.GetGrainId(), ReminderName);
+        var r = await reminderRegistry.GetReminder(this.GetGrainId(), ReminderName);
         if (r is not null)
         {
-            await registry.UnregisterReminder(this.GetGrainId(), r);
-            await grains.GetGrain<IWorkerCatalogGrain>("stateful-catalog")
+            await reminderRegistry.UnregisterReminder(this.GetGrainId(), r);
+            await grainFactory.GetGrain<IWorkerCatalogGrain>("stateful-catalog")
                         .RemoveAsync(this.GetPrimaryKeyString());
 
             if (state.RecordExists)

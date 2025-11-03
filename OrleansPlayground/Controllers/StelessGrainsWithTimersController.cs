@@ -3,10 +3,9 @@ using OrleansPlayground.Grains;
 
 namespace OrleansPlayground.Controllers;
 
-
 [ApiController]
-[Route("stateless-grains")]
-public sealed class StatelessGrainsController(IGrainFactory grains) : ControllerBase
+[Route("stateless-grains-with-timers")]
+public sealed class StelessGrainsWithTimersController(IGrainFactory grains) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromQuery] int count = 1)
@@ -21,8 +20,8 @@ public sealed class StatelessGrainsController(IGrainFactory grains) : Controller
             var batch = allIds.Skip(i).Take(BatchSize).ToArray();
 
             var tasks = batch.Select(id =>
-                grains.GetGrain<IReminderWorkerGrain>(id)
-                      .RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod));
+                grains.GetGrain<IReminderTimerWorkerGrain>(id)
+                      .RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod, Configuration.TimerDue, Configuration.TimerPeriod));
 
             await Task.WhenAll(tasks);
 
@@ -35,14 +34,14 @@ public sealed class StatelessGrainsController(IGrainFactory grains) : Controller
     [HttpGet("list")]
     public async Task<IActionResult> List()
     {
-        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateless-catalog").ListAsync();
+        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateless-with-timer-catalog").ListAsync();
         return Ok(ids);
     }
 
     [HttpGet("count")]
     public async Task<IActionResult> Count()
     {
-        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateless-catalog").ListAsync();
+        var ids = await grains.GetGrain<IWorkerCatalogGrain>("stateless-with-timer-catalog").ListAsync();
         return Ok(ids.Count);
     }
 
@@ -50,19 +49,7 @@ public sealed class StatelessGrainsController(IGrainFactory grains) : Controller
     public async Task<IActionResult> Purge([FromQuery] int count = 0)
     {
         var maint = grains.GetGrain<IRemindersMaintenanceGrain>("maintenance");
-        var purged = await maint.Purge<IReminderWorkerGrain>(count, "stateless-catalog");
+        var purged = await maint.Purge<IReminderTimerWorkerGrain>(count, "stateless-with-timer-catalog");
         return Ok(new { Purged = purged });
-    }
-
-    [HttpPost("rebalance")]
-    public async Task<IActionResult> Rebalance([FromQuery] int count = 0)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            var id = Guid.NewGuid().ToString("N");
-            await grains.GetGrain<IReminderWorkerGrain>(id)
-                        .RegisterReminderAsync(Configuration.ReminderDue, Configuration.ReminderPeriod);
-        }
-        return Ok(new { Registered = count });
     }
 }
