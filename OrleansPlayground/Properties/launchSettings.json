@@ -16,7 +16,8 @@
       "launchBrowser": false,
       "applicationUrl": "https://localhost:7199;http://localhost:5162",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "SiloPort": "11111"
       }
     }
   }
