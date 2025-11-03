@@ -39,6 +39,8 @@ public class SampleGrain(
 
     public async Task<int> AddAsync(int value)
     {
+        await Task.Delay(TimeSpan.FromSeconds(10));
+
         state.State.Value += value;
         await state.WriteStateAsync();
 
